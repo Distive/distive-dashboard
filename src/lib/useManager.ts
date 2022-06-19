@@ -3,7 +3,7 @@ import { err, fromThrowable, ok, Result, ResultAsync, } from 'neverthrow'
 import { DistiveTreasuryActor } from './treasuryActor'
 import Ajv from 'ajv'
 import { BlackHoleActor } from './blackholeActor'
-
+import {Principal} from '@dfinity/principal'
 function mockStall<T = void>(ms: number, value: T): Promise<T> {
     return new Promise(resolve => {
         setTimeout(() => {
@@ -117,7 +117,7 @@ const useManager = (serializedManager: object): UseManagerHook => {
         return ResultAsync.fromPromise(
             (() => {
                 const blackHoleActor = BlackHoleActor.newActor()._unsafeUnwrap({ withStackTrace: true })
-                return blackHoleActor.canister_status({ canister_id: canisterId }).then(value => Number(value.cycles))
+                return blackHoleActor.canister_status({ canister_id: Principal.fromText(canisterId) }).then(value => Number(value.cycles))
             })(),
             e => `${e} Could Not Get Cycles For Canister ${canisterId}`);
 

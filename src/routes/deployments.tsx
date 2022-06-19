@@ -2,8 +2,10 @@ import useLocalStorage from '@rehooks/local-storage';
 import React, { useEffect } from 'react';
 import { CopyToClipboard } from 'react-copy-to-clipboard'
 import useManager, { CanisterDataState, DeserializedManagerData, UseManagerHook } from '../lib/useManager';
-// import {} from '@dfinity/agent'
+import FileManager from '../lib/file'
 const buttonStyle = ` font-medium shadow-md py-3 px-4  flex-row flex items-center gap-2 border-black border-2 rounded-md `
+
+
 
 export default function Deployments() {
     const [serializedManager, setSerializedManager] = useLocalStorage('manager', {})
@@ -18,22 +20,8 @@ export default function Deployments() {
                     setSerializedManager({})
                 })
         }
-    }, [JSON.stringify(manager)])
+    }, [manager, setSerializedManager])
 
-    useEffect(() => {
-        //call fucntion every few seconds
-        // const interval = setInterval(manager.refreshCanisterCycles, 5000)
-        // return () => clearInterval(interval)
-    }, [manager])
-
-
-    // async function updateCyclesState() {
-    //     const updatedCyclesStates = manager.canisterCyclesUpdatedState()
-    //     for await (const updatedCyclesState of updatedCyclesStates) {
-    //         console.log(updatedCyclesState)
-    //         // setSerializedManager(updatedCyclesState)
-    //     }
-    // }
 
     return (
         <div>
@@ -49,10 +37,16 @@ export default function Deployments() {
     )
 }
 
-function NotAuthenticated(manager: UseManagerHook, setSerializedManager: (serializedManager: DeserializedManagerData) => void) {
+function NotAuthenticated(manager: UseManagerHook, setSerializedManager: (serializedManager: object) => void) {
 
     const handleImport = () => {
-
+        setSerializedManager({})
+        FileManager.fromFile()
+            .match(manager => {
+                setSerializedManager(manager)
+            }, e => {
+                console.error(e)
+            })
 
     }
 
@@ -83,16 +77,29 @@ function NotAuthenticated(manager: UseManagerHook, setSerializedManager: (serial
 
 
 
-function Authenticated(manager: UseManagerHook, setSerializedManager: (serializedManager: DeserializedManagerData) => void) {
-    const { error, user, createCanister, createCanisterLoading, canisters,  } = manager
+function Authenticated(manager: UseManagerHook, setSerializedManager: (serializedManager: object) => void) {
+    const { error, user, createCanister, createCanisterLoading, canisters, } = manager
 
 
     const handleImport = () => {
+        setSerializedManager({})
+
+        FileManager.fromFile()
+        .match(manager => {
+            setSerializedManager(manager)
+        }, e => {
+            console.error(e)
+        })
 
     }
 
     const handleExport = () => {
-
+        manager.export()
+            .match(manager => {
+                FileManager.fromManager(manager)
+            }, e => {
+                console.log(e)
+            })
     }
 
     const handleCreate = () => {

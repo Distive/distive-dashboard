@@ -1,32 +1,58 @@
-import { Actor, ActorMethod, ActorSubclass, AnonymousIdentity, HttpAgent } from '@dfinity/agent'
+import { Actor, ActorMethod, ActorSubclass, HttpAgent } from '@dfinity/agent'
 import { IDL } from '@dfinity/candid'
+import { Principal } from '@dfinity/principal'
 import { fromThrowable, Result } from 'neverthrow'
 export namespace BlackHoleActor {
 
     type IDLParam = Parameters<IDL.InterfaceFactory>[0];
-
+     interface definite_canister_settings {
+        'freezing_threshold' : bigint,
+        'controllers' : Array<Principal>,
+        'memory_allocation' : bigint,
+        'compute_allocation' : bigint,
+    }
+    
     interface CanisterStatus {
-        cycles: bigint
-        memory_size: bigint
+        'status': { 'stopped': null } |
+        { 'stopping': null } |
+        { 'running': null },
+        'memory_size': bigint,
+        'cycles': bigint,
+        'settings': definite_canister_settings,
+        'module_hash': [] | [Array<number>],
     }
 
     interface Service {
-        canister_status: ActorMethod<[{ canister_id: string }], CanisterStatus>
+        canister_status: ActorMethod<[{ canister_id: Principal }], CanisterStatus>
     }
 
     const idlFactory = ({ IDL }: IDLParam) => {
+        const canister_id = IDL.Principal;
+        const definite_canister_settings = IDL.Record({
+            'freezing_threshold': IDL.Nat,
+            'controllers': IDL.Vec(IDL.Principal),
+            'memory_allocation': IDL.Nat,
+            'compute_allocation': IDL.Nat,
+        });
         const canister_status = IDL.Record({
-            cycles: IDL.Nat,
-            memory_size: IDL.Nat
-        })
-
-        const canister_status_param = IDL.Record({
-            canister_id: IDL.Principal
-        })
+            'status': IDL.Variant({
+                'stopped': IDL.Null,
+                'stopping': IDL.Null,
+                'running': IDL.Null,
+            }),
+            'memory_size': IDL.Nat,
+            'cycles': IDL.Nat,
+            'settings': definite_canister_settings,
+            'module_hash': IDL.Opt(IDL.Vec(IDL.Nat8)),
+        });
 
         return IDL.Service({
-            canister_status: IDL.Func([canister_status_param], [canister_status], ['query'])
-        })
+            'canister_status': IDL.Func(
+                [IDL.Record({ 'canister_id': canister_id })],
+                [canister_status],
+                [],
+            ),
+        });
     }
 
     export const newActor = (): Result<ActorSubclass<Service>, string> => {
