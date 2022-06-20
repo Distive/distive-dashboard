@@ -4,13 +4,6 @@ import { DistiveTreasuryActor } from './treasuryActor'
 import Ajv from 'ajv'
 import { BlackHoleActor } from './blackholeActor'
 import {Principal} from '@dfinity/principal'
-function mockStall<T = void>(ms: number, value: T): Promise<T> {
-    return new Promise(resolve => {
-        setTimeout(() => {
-            resolve(value)
-        }, ms)
-    })
-}
 
 export interface DeserializedManagerData {
     canisters: CanisterData[];
@@ -105,7 +98,7 @@ const useManager = (serializedManager: object): UseManagerHook => {
         setState(state)
         const interval = setInterval(refreshCanisterCycles, 5000)
         return () => clearInterval(interval)
-    }, [serializedManager])
+    }, [serializedManager,refreshCanisterCycles])
 
     // useEffect(() => {
     //      const interval = setInterval(refreshCanisterCycles, 5000)

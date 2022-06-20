@@ -277,9 +277,9 @@ function CanisterCard({ id, nickname, remainingCyclesInfo: { remainingCycles } }
                 <div>
                     {Intl.NumberFormat('en-US', { style: 'decimal' }).format(remainingCycles)}
                 </div>
-                <button className='font-bold'>
+                <a target='_blank' href='https://k25co-pqaaa-aaaab-aaakq-cai.ic0.app' className='font-bold'>
                     Add Cycles
-                </button>
+                </a>
             </div>
         </div>
         <div>
