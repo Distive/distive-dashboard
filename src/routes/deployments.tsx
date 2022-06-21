@@ -24,14 +24,25 @@ export default function Deployments() {
 
 
     return (
-        <div>
-            <section className='flex flex-col items-center justify-center '>
-                {
-                    (!manager.user.id ?
-                        NotAuthenticated :
-                        Authenticated
-                    )(manager, setSerializedManager)
-                }
+        <div className='flex gap-10 flex-col items-center justify-center h-screen'>
+            <section className={`grid gap-10`}>     
+                <div className='bg-white rounded-md shadow-lg p-10 '>
+                    {
+                        (!manager.user.id ?
+                            NotAuthenticated :
+                            Authenticated
+                        )(manager, setSerializedManager)
+                    }
+                </div>
+                
+                <div className='text-center'>
+                    <a target='_blank' href='https://docs.distive.com' className={`text-2xl bg-white w-full ${buttonStyle}`}>
+                        <h3 className='text-center w-full'>Docs/integrations</h3>
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                        </svg>
+                    </a>
+                </div>
             </section>
         </div>
     )
@@ -64,7 +75,7 @@ function NotAuthenticated(manager: UseManagerHook, setSerializedManager: (serial
             })
     }
 
-    return <div className='bg-white rounded-md shadow-lg p-10 flex max-w-xl w-full flex-col gap-20'>
+    return <div className='flex flex-col gap-20'>
         <ProfileDisplay
             exportProfileClicked={handleExport}
             importProfileClicked={handleImport}
@@ -85,11 +96,11 @@ function Authenticated(manager: UseManagerHook, setSerializedManager: (serialize
         setSerializedManager({})
 
         FileManager.fromFile()
-        .match(manager => {
-            setSerializedManager(manager)
-        }, e => {
-            console.error(e)
-        })
+            .match(manager => {
+                setSerializedManager(manager)
+            }, e => {
+                console.error(e)
+            })
 
     }
 
@@ -106,11 +117,11 @@ function Authenticated(manager: UseManagerHook, setSerializedManager: (serialize
 
     }
 
-    return <div className='bg-white rounded-md shadow-lg p-10  max-w-xl w-full'>
+    return <div className=''>
 
         {error && <p className='text-red-500'>{error}</p>}
 
-        <div className='flex max-w-xl w-full flex-col gap-20'>
+        <div className='flex  w-full flex-col gap-20'>
             <ProfileDisplay
                 exportProfileClicked={handleExport}
                 importProfileClicked={handleImport}
