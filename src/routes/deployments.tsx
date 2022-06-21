@@ -25,7 +25,7 @@ export default function Deployments() {
 
     return (
         <div className='flex gap-10 flex-col items-center justify-center h-screen'>
-            <section className={`grid gap-10`}>     
+            <section className={`grid gap-10 mt-10 mb-10`}>     
                 <div className='bg-white rounded-md shadow-lg p-10 '>
                     {
                         (!manager.user.id ?
