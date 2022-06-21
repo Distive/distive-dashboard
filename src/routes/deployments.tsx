@@ -36,7 +36,7 @@ export default function Deployments() {
                 </div>
                 
                 <div className='text-center'>
-                    <a target='_blank' href='https://docs.distive.com' className={`text-2xl bg-white w-full ${buttonStyle}`}>
+                    <a target='_blank' href='https://docs.distive.com/integrations' className={`text-2xl bg-white w-full ${buttonStyle}`}>
                         <h3 className='text-center w-full'>Docs/integrations</h3>
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
