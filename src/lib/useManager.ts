@@ -3,7 +3,7 @@ import { err, fromThrowable, ok, Result, ResultAsync, } from 'neverthrow'
 import { DistiveTreasuryActor } from './treasuryActor'
 import Ajv from 'ajv'
 import { BlackHoleActor } from './blackholeActor'
-import {Principal} from '@dfinity/principal'
+import { Principal } from '@dfinity/principal'
 
 export interface DeserializedManagerData {
     canisters: CanisterData[];
@@ -62,6 +62,7 @@ export interface UseManagerHook {
     // refreshCanisterCycles: () => void
     export: () => Result<DeserializedManagerData, string>
     newManager: () => Result<DeserializedManagerData, string>
+    logOut: () => void
 }
 
 type ManagerState = {
@@ -81,8 +82,6 @@ type ManagerState = {
 } | { type: 'UNINITIALIZED', error: '' }
 
 const DEFAULT_MANAGER_STATE = { type: 'UNINITIALIZED' } as ManagerState
-// export const DEFAULT_SERIALIZED_MANAGER_STATE = '__DEFAULT__'
-// export const ERROR_SERIALIZED_MANAGER_STATE = '__ERROR__'
 
 const useManager = (serializedManager: object): UseManagerHook => {
 
@@ -90,67 +89,59 @@ const useManager = (serializedManager: object): UseManagerHook => {
     const [createCanisterLoading, setCreateCanisterLoading] = useState(false)
 
     useEffect(() => {
+        function refreshCanisterCycles() {
+            state.type === 'INITIALIZED' && state.canisters.map(({ id }) => {
+                getCanisterCycles(id.toString()).map(cycles => {
+                    console.log(cycles)
+                    setState(state => {
+                        if (state.type !== 'INITIALIZED') {
+                            return state
+                        }
+                        const canisterIndex = state.canisters.findIndex(canister => canister.id === id)
+                        const canister = state.canisters[canisterIndex]
+                        const updatedCanister = {
+                            ...canister,
+                            remainingCyclesInfo: {
+                                remainingCycles: cycles,
+                                loading: false,
+                                error: ''
+                            }
+                        }
+                        const newCanisters = [...state.canisters.slice(0, canisterIndex), updatedCanister, ...state.canisters.slice(canisterIndex + 1)]
+                        return {
+                            ...state,
+                            canisters: newCanisters
+                        }
+                    })
+                })
+                    .mapErr(error => {
+                        console.error(error)
+                    })
+            })
+        }
+
         const state: ManagerState = parseSerializedManager(serializedManager)
             .match(deserializedManagerToManagerState, error => ({
                 type: 'ERROR', error:
                     `${error} : ${typeof serializedManager} : ${JSON.stringify(serializedManager)}`
             }))
         setState(state)
-        const interval = setInterval(refreshCanisterCycles, 5000)
+        const interval = setInterval(refreshCanisterCycles, 30000)
         return () => clearInterval(interval)
-    }, [serializedManager,refreshCanisterCycles])
-
-    // useEffect(() => {
-    //      const interval = setInterval(refreshCanisterCycles, 5000)
-    //     return () => clearInterval(interval)
-    // }, [])
+    }, [serializedManager,])
 
 
-    const getCanisterCycles = (canisterId: string): ResultAsync<number, String> => {
+    function getCanisterCycles(canisterId: string): ResultAsync<number, String> {
         return ResultAsync.fromPromise(
             (() => {
                 const blackHoleActor = BlackHoleActor.newActor()._unsafeUnwrap({ withStackTrace: true })
                 return blackHoleActor.canister_status({ canister_id: Principal.fromText(canisterId) }).then(value => Number(value.cycles))
             })(),
             e => `${e} Could Not Get Cycles For Canister ${canisterId}`);
-
-
     }
 
 
-    function refreshCanisterCycles() {
-        state.type === 'INITIALIZED' && state.canisters.map(({ id }) => {
-            getCanisterCycles(id.toString()).map(cycles => {
-                console.log(cycles)
-                setState(state => {
-                    if (state.type !== 'INITIALIZED') {
-                        return state
-                    }
-                    const canisterIndex = state.canisters.findIndex(canister => canister.id === id)
-                    const canister = state.canisters[canisterIndex]
-                    const updatedCanister = {
-                        ...canister,
-                        remainingCyclesInfo: {
-                            remainingCycles: cycles,
-                            loading: false,
-                            error: ''
-                        }
-                    }
-                    const newCanisters = [...state.canisters.slice(0, canisterIndex), updatedCanister, ...state.canisters.slice(canisterIndex + 1)]
-                    return {
-                        ...state,
-                        canisters: newCanisters
-                    }
-                })
-            })
-                .mapErr(error => {
-                    console.error(error)
-                })
-        })
-    }
-
-
-    const createCanister = (nickname: String) => {
+    function createCanister(nickname: String) {
 
         if (state.type === 'INITIALIZED') {
             const actor = state.user.actor
@@ -188,27 +179,11 @@ const useManager = (serializedManager: object): UseManagerHook => {
                 })
             })
         }
-
-
-
     }
 
-    // const serializeManagerState = (state: ManagerState): DeserializedManagerData => {
-    //     if (state.type === 'INITIALIZED') {
-    //         const canisterData = state.canisters.map(CanisterData.fromState)
-    //         const { privateKey, publicKey } = state.user
-    //         const deserializedManagerData: DeserializedManagerData = {
-    //             canisters: canisterData,
-    //             privateKey,
-    //             publicKey
-    //         }
-    //         return deserializedManagerData
-    //     } else {
-    //         return DEFAULT_SERIALIZED_MANAGER_STATE
-    //     }
-    // }
 
-    const deserializedManagerToManagerState = (deserializedManager: DeserializedManagerData): ManagerState => {
+
+    function deserializedManagerToManagerState(deserializedManager: DeserializedManagerData): ManagerState {
         const { canisters, privateKey, publicKey } = deserializedManager
 
         if (!privateKey.length || !publicKey.length) {
@@ -242,20 +217,7 @@ const useManager = (serializedManager: object): UseManagerHook => {
             )
     }
 
-    const parseSerializedManager = (serializedManager: object): Result<DeserializedManagerData, String> => {
-        // if (serializedManager === DEFAULT_SERIALIZED_MANAGER_STATE) {
-        //     return ok({
-        //         canisters: [],
-        //         publicKey: '',
-        //         privateKey: ''
-        //     })
-        // }
-
-        // if (serializedManager === ERROR_SERIALIZED_MANAGER_STATE) {
-        //     return err('ERROR DESERIALIZING MANAGER')
-        // }
-
-
+    function parseSerializedManager(serializedManager: object): Result<DeserializedManagerData, String> {
         const managerSchema = {
             type: 'object',
             properties: {
@@ -285,7 +247,7 @@ const useManager = (serializedManager: object): UseManagerHook => {
             required: ['canisters', 'publicKey', 'privateKey']
         }
 
-        // const parseJson = fromThrowable(JSON.parse, e => (e as any)?.message ?? 'UNABLE TO PARSE MANAGER JSON')
+
         const managerSchemaValidator = fromThrowable((parsedJson: object) => {
             const result = new Ajv().compile<DeserializedManagerData>(managerSchema)(parsedJson)
             if (!result) {
@@ -298,7 +260,7 @@ const useManager = (serializedManager: object): UseManagerHook => {
         return managerSchemaValidator(serializedManager)
     }
 
-    const newManager = (): Result<DeserializedManagerData, string> => {
+    function newManager(): Result<DeserializedManagerData, string> {
         return DistiveTreasuryActor.createKeyPair()
             .map(({ privateKey, publicKey }) => {
                 const manager = {
@@ -311,6 +273,31 @@ const useManager = (serializedManager: object): UseManagerHook => {
             .mapErr(e => e.toString())
     }
 
+    function exportManager() {
+        switch (state.type) {
+            case 'INITIALIZED':
+                return ok({
+                    canisters: state.canisters.map(CanisterData.fromState),
+                    privateKey: state.user.privateKey,
+                    publicKey: state.user.publicKey
+                })
+
+            case 'UNINITIALIZED':
+                return ok({
+                    canisters: [],
+                    privateKey: '',
+                    publicKey: ''
+                })
+
+            case 'ERROR':
+                return err(state.error.toString())
+        }
+    }
+
+    function logOut() {
+        setState(DEFAULT_MANAGER_STATE)
+    }
+
     return {
         error: state.error,
         createCanisterLoading,
@@ -320,16 +307,9 @@ const useManager = (serializedManager: object): UseManagerHook => {
         },
         canisters: state.type === 'INITIALIZED' ? state.canisters : [],
         // refreshCanisterCycles,
-        export: () => {
-            const result: Result<DeserializedManagerData, string> = state.type === 'INITIALIZED' ? ok({
-                canisters: state.canisters.map(CanisterData.fromState),
-                privateKey: state.user.privateKey,
-                publicKey: state.user.publicKey
-            }) : err('MANAGER NOT INITIALIZED')
-
-            return result
-        },
-        newManager
+        export: exportManager,
+        newManager,
+        logOut
     }
 }
 

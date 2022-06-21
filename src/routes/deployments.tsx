@@ -15,17 +15,18 @@ export default function Deployments() {
         if (manager.user.id) {
             manager.export()
                 .match(manager => {
+                    console.log(manager)
                     setSerializedManager(manager)
                 }, e => {
                     setSerializedManager({})
                 })
         }
-    }, [manager, setSerializedManager])
+    }, [JSON.stringify(manager),setSerializedManager])
 
 
     return (
         <div className='flex gap-10 flex-col items-center justify-center py-10 md:h-screen max-w-5xl m-auto'>
-            <section className={`grid md:grid-flow-col gap-10 `}>     
+            <section className={`grid md:grid-flow-col gap-10 `}>
                 <div className='bg-white rounded-md shadow-lg p-10 '>
                     {
                         (!manager.user.id ?
@@ -34,7 +35,7 @@ export default function Deployments() {
                         )(manager, setSerializedManager)
                     }
                 </div>
-                
+
                 <div className='text-center mx-10'>
                     <a rel='noreferrer' target='_blank' href='https://docs.distive.com/integrations' className={` bg-white w-full relative duration-300 hover:-top-1 top-0 ${buttonStyle}`}>
                         <h3 className='text-center w-full'>Docs/integrations</h3>
@@ -76,6 +77,7 @@ function NotAuthenticated(manager: UseManagerHook, setSerializedManager: (serial
 
     return <div className='flex flex-col gap-20'>
         <ProfileDisplay
+            logout={() => { }}
             exportProfileClicked={handleExport}
             importProfileClicked={handleImport}
             newProfileClicked={handleCreate}
@@ -122,6 +124,7 @@ function Authenticated(manager: UseManagerHook, setSerializedManager: (serialize
 
         <div className='flex  w-full flex-col gap-20'>
             <ProfileDisplay
+                logout={() => manager.logOut()}
                 exportProfileClicked={handleExport}
                 importProfileClicked={handleImport}
                 newProfileClicked={handleCreate}
@@ -225,9 +228,10 @@ interface ProfileDisplayProps {
     importProfileClicked: () => void
     exportProfileClicked: () => void
     newProfileClicked: () => void
+    logout: () => void
 }
 
-function ProfileDisplay({ userID, importProfileClicked, exportProfileClicked, newProfileClicked }: ProfileDisplayProps) {
+function ProfileDisplay({ userID, importProfileClicked, exportProfileClicked, newProfileClicked, logout }: ProfileDisplayProps) {
 
     const newProfileButton = <button onClick={newProfileClicked} className={`bg-white ${buttonStyle}`}>
         <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -254,7 +258,10 @@ function ProfileDisplay({ userID, importProfileClicked, exportProfileClicked, ne
     return !userID ?
         <div>
             <div className='flex flex-col gap-2'>
-                <h1 className='text-4xl font-semibold'>Distive Manager</h1>
+                <div className='flex flex-row'>
+                    <h1 className='text-4xl font-semibold'>Distive Manager</h1>
+
+                </div>
                 <h2 className='text-2xl '>Would you like to create a new profile or import one ?</h2>
                 <div className='mt-6 flex gap-2'>
                     {newProfileButton}
@@ -268,7 +275,12 @@ function ProfileDisplay({ userID, importProfileClicked, exportProfileClicked, ne
         </div> :
 
         <div className='flex flex-col gap-2'>
-            <h1 className='text-4xl font-semibold'>Distive Manager</h1>
+            <div className='flex flex-row justify-between'>
+                <h1 className='text-4xl font-semibold'>Distive Manager</h1>
+                <button onClick={() => logout()} className='font-bold'>
+                    Logout
+                </button>
+            </div>
             <h2>Profile ID: <b>{userID}</b></h2>
             <div className='mt-6 flex gap-2'>
                 {importProfileButton}
@@ -287,7 +299,7 @@ function CanisterCard({ id, nickname, remainingCyclesInfo: { remainingCycles } }
                 <div>
                     {Intl.NumberFormat('en-US', { style: 'decimal' }).format(remainingCycles)}
                 </div>
-                <a target='_blank'rel='noreferrer' href='https://k25co-pqaaa-aaaab-aaakq-cai.ic0.app' className='font-bold'>
+                <a target='_blank' rel='noreferrer' href='https://k25co-pqaaa-aaaab-aaakq-cai.ic0.app' className='font-bold'>
                     Add Cycles
                 </a>
             </div>
