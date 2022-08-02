@@ -21,11 +21,11 @@ export default function Deployments() {
                     setSerializedManager({})
                 })
         }
-    }, [JSON.stringify(manager),setSerializedManager])
+    }, [JSON.stringify(manager), setSerializedManager])
 
 
     return (
-        <div className='flex gap-10 flex-col items-center justify-center py-10 md:h-screen max-w-5xl m-auto'>
+        <div className='flex gap-10 flex-col items-center py-10 md:h-screen max-w-5xl m-auto'>
             <section className={`grid md:grid-flow-col gap-10 `}>
                 <div className='bg-white rounded-md shadow-lg p-10 '>
                     {
