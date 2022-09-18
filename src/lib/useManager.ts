@@ -133,7 +133,7 @@ const useManager = (serializedManager: object): UseManagerHook => {
 
     function getCanisterCycles(canisterId: string): ResultAsync<number, String> {
         return ResultAsync.fromPromise(
-            (() => {
+            (():any => {
                 const blackHoleActor = BlackHoleActor.newActor()._unsafeUnwrap({ withStackTrace: true })
                 return blackHoleActor.canister_status({ canister_id: Principal.fromText(canisterId) }).then(value => Number(value.cycles))
             })(),

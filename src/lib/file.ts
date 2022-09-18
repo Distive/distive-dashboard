@@ -27,6 +27,25 @@ namespace FileManager {
                 })
             , e => `${(e as any)?.message} COULD NOT OPEN FILE`)
     }
+
+    export function fromCSVChunk(chunk: Uint8Array, name: string): Result<void, string> {
+        const blob = new Blob([chunk], { type: 'text/csv' });
+        const saveFile = fromThrowable(() => saveAs(blob, `${name}.csv`), e => `${(e as any)?.message} FAILED TO SAVE FILE`);
+        return saveFile()
+    }
+
+    export function toCSVChunk() {
+        return fromPromise(
+            selectFiles({ accept: 'text/csv' })
+                .then(fileList => {
+                    if (!fileList) {
+                        throw 'NOT SELECTED'
+                    } else {
+                        return fileList
+                    }
+                })
+            , e => `${(e as any)?.message} COULD NOT OPEN FILE`)
+    }
 }
 
 export default FileManager

@@ -2,6 +2,7 @@ import { Actor, ActorMethod, ActorSubclass, HttpAgent } from '@dfinity/agent'
 import { Ed25519KeyIdentity } from '@dfinity/identity'
 import { IDL } from '@dfinity/candid'
 import { fromThrowable, ok, Result } from 'neverthrow'
+import { replicaHost } from './constants'
 
 export namespace DistiveTreasuryActor {
 
@@ -30,7 +31,7 @@ export namespace DistiveTreasuryActor {
         status: ActorMethod<[], Status>,
     }
 
-   export  const idlFactory = ({ IDL }: IDLParam) => {
+    export const idlFactory = ({ IDL }: IDLParam) => {
         const create_chat_canister_result = IDL.Record({
             'canister_id': IDL.Text,
             'message': IDL.Text,
@@ -66,7 +67,7 @@ export namespace DistiveTreasuryActor {
 
         const agentFromIdentity = fromThrowable(
             ({ identity, principal }: { identity: Ed25519KeyIdentity, principal: string }) => ({
-                agent: new HttpAgent({ host: "https://boundary.ic0.app/", identity }),
+                agent: new HttpAgent({ host: replicaHost, identity }),
                 principal
             }),
             e => ((e as any)?.message ?? 'UNABLE TO CREATE AGENT FROM IDENTITY') as string
@@ -93,7 +94,7 @@ export namespace DistiveTreasuryActor {
 
     export function createKeyPair(): Result<KeyPair, String> {
         const generateNewIdentity = fromThrowable(
-          ()=>  Ed25519KeyIdentity.generate(),
+            () => Ed25519KeyIdentity.generate(),
             e => (console.error((e as any)?.message), 'UNABLE TO GENERATE KEY PAIR')
         )
 

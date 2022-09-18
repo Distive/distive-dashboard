@@ -1,8 +1,9 @@
 import useLocalStorage from '@rehooks/local-storage';
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { CopyToClipboard } from 'react-copy-to-clipboard'
 import useManager, { CanisterDataState, DeserializedManagerData, UseManagerHook } from '../lib/useManager';
 import FileManager from '../lib/file'
+import { ChatCanisterActor } from '../lib/chatCanisterActor';
 const buttonStyle = ` font-medium shadow-md py-3 px-4  flex-row flex items-center gap-2 border-black border-2 rounded-md `
 
 
@@ -321,5 +322,155 @@ function CanisterCard({ id, nickname, remainingCyclesInfo: { remainingCycles } }
                 </CopyToClipboard>
             </div>
         </div>
+        <div>
+            <h6 className='font-medium'>Backup</h6>
+            <BackupCanister canisterId={id} />
+        </div>
     </div>
 }
+
+interface BackupCanisterProps {
+    canisterId: String
+}
+
+function BackupCanister({ canisterId }: BackupCanisterProps) {
+
+    const { status: exportStatus, loading: exportLoading, exportData, resetStatus: resetExportStatus } = useExportCanister(canisterId)
+    const { status: importStatus, loading: importLoading, importData, resetStatus: resetImportStatus } = useImportCanister(canisterId)
+
+    const loadingIcon = <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 animate-spin" viewBox="0 0 20 20" fill="currentColor">
+        <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
+    </svg>
+
+    
+
+    const exportIcon = <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+    </svg>
+
+    const importIcon = <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+    </svg>
+
+    return <div className='flex justify-between p-3 mt-2 text-black bg-[#DBE2E5] rounded-md items-center'>
+        <div>
+            {exportStatus || importStatus}
+        </div>
+        <div className='flex  gap-2'>
+            {!importLoading && <button onClick={() => { resetImportStatus(); exportData()}} className={`border-black bg-black text-white ${buttonStyle} text-sm px-4 py-1.5`}>
+                {!exportLoading && 'Export CSV'}
+                {exportLoading ? loadingIcon : exportIcon}
+            </button>
+            }
+            {!exportLoading &&
+                <button onClick={() => { resetExportStatus() ; importData() }} className={`border-black bg-white text-black ${buttonStyle} text-sm px-4 py-1.5`}>
+                    {!importLoading && 'Import CSV'}
+                    {importLoading ? loadingIcon : importIcon}
+                </button>}
+        </div>
+    </div>
+}
+
+const useExportCanister = (canisterId: String) => {
+    // const [currentExportCursor, setExportCurrentCursor] = useState(0) //-1 when done
+    const [status, setStatus] = useState('')
+    const [loading, setLoading] = useState(false)
+    // let exportedChunk = new Uint8Array()
+    const actor = ChatCanisterActor.actorFromIdentity(canisterId.toString())
+
+
+    function exportData(): void {
+
+        _exportData()
+    }
+
+    async function _exportData() {
+        setLoading(true)
+        for await (const [currentCursor, value] of exportDataIterator()) {
+            FileManager.fromCSVChunk(value, `${canisterId}_${currentCursor}`)
+            setStatus(`Exported cursor: ${currentCursor}`)
+        }
+        setStatus(`Exported all data`)
+        setLoading(false)
+    }
+
+
+    async function* exportDataIterator(): AsyncGenerator<[number, Uint8Array]> {
+        let _next_cursor: number = 0
+
+        while (_next_cursor !== null) {
+            // if (!_next_cursor) break
+            try {
+                let { data, next_cursor } = await actor.export_comments({ cursor: _next_cursor })
+                console.log('next_cursor', next_cursor)
+                if (!next_cursor) break
+                yield [_next_cursor, data]
+                _next_cursor = next_cursor
+            } catch (error) {
+                console.error(error)
+                break
+            }
+        }
+    }
+
+
+    return {
+        status,
+        exportData,
+        loading,
+        resetStatus: () => setStatus('')
+
+    }
+
+}
+
+const useImportCanister = (canisterId: String) => {
+
+    const [status, setStatus] = useState('')
+    const [loading, setLoading] = useState(false)
+    const [remaining, setRemaining] = useState(0)
+    const actor = ChatCanisterActor.actorFromIdentity(canisterId.toString())
+
+
+
+
+    function importData(): void {
+        _importData()
+    }
+
+    async function _importData() {
+        setLoading(true)
+        let files = (await FileManager.toCSVChunk())._unsafeUnwrap()
+        setRemaining(files.length)
+        setStatus('Status - Importing')
+        for await (const file of files) {
+            try {
+                const buffer = await file.arrayBuffer()
+                const uint8Array = new Uint8Array(buffer)
+                const result = await actor.import_comments(uint8Array);
+                console.log('result: ', result)
+                setRemaining((remaining) => remaining - 1)
+                const remainingPercent = Math.round((remaining / files.length) * 100)
+                setStatus(`Status - Importing ${remainingPercent}%`)
+                console.log('Importing', remainingPercent)
+            } catch (error) {
+                console.error(error)
+                setLoading(false)
+                setStatus(`Error - ${error}`)
+                break
+            }
+        }
+        setStatus(`Status - Done Importing`)
+        setLoading(false)
+    }
+
+    return {
+        status,
+        importData,
+        loading,
+        resetStatus: () => setStatus('')
+
+    }
+
+}
+

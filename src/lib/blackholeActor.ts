@@ -2,6 +2,7 @@ import { Actor, ActorMethod, ActorSubclass, HttpAgent } from '@dfinity/agent'
 import { IDL } from '@dfinity/candid'
 import { Principal } from '@dfinity/principal'
 import { fromThrowable, Result } from 'neverthrow'
+import { replicaHost } from './constants';
 export namespace BlackHoleActor {
 
     type IDLParam = Parameters<IDL.InterfaceFactory>[0];
@@ -58,7 +59,7 @@ export namespace BlackHoleActor {
     export const newActor = (): Result<ActorSubclass<Service>, string> => {
         const blackHoleCanisterId = 'e3mmv-5qaaa-aaaah-aadma-cai'
         const newAgent = fromThrowable(
-            () => new HttpAgent({ host: "https://boundary.ic0.app/" }),
+            () => new HttpAgent({ host: replicaHost}),
             e => ((e as any)?.message ?? 'UNABLE TO CREATE AGENT') as string
         )
         const actorFromAgent = fromThrowable((agent: HttpAgent) => Actor.createActor<Service>(
